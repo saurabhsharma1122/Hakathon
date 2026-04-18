@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Hallucination Detector</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0a0a14;
+      color: #f0f0f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .header h1 { font-size: 2.4rem; font-weight: 700; }
+    .header h1 span { color: #818cf8; }
+    .header p { color: #888; margin-top: 8px; font-size: 1rem; }
+
+    .badge {
+      display: inline-block;
+      background: #1a1a2e;
+      border: 1px solid #2a2a4a;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.75rem;
+      color: #818cf8;
+      margin-top: 6px;
+    }
+
+    .card {
+      background: #12121f;
+      border: 1px solid #1e1e3a;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 680px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: #aaa;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    textarea {
+      width: 100%;
+      background: #0a0a14;
+      border: 1px solid #2a2a4a;
+      border-radius: 10px;
+      color: #f0f0f0;
+      font-size: 1rem;
+      padding: 16px;
+      resize: vertical;
+      min-height: 160px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus { border-color: #818cf8; }
+
+    button {
+      margin-top: 16px;
+      width: 100%;
+      padding: 14px;
+      background: #818cf8;
+      color: #0a0a14;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    button:hover { background: #6366f1; }
+    button:active { transform: scale(0.98); }
+    button:disabled { background: #2a2a4a; color: #555; cursor: not-allowed; }
+
+    .result { margin-top: 28px; display: none; }
+
+    .verdict-box {
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .verdict-box.hallucinated {
+      background: #1a0a2e;
+      border: 1px solid #a855f7;
+    }
+
+    .verdict-box.factual {
+      background: #0a1a2e;
+      border: 1px solid #818cf8;
+    }
+
+    .verdict-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    .verdict-text { font-size: 2rem; font-weight: 800; }
+    .verdict-box.hallucinated .verdict-text { color: #a855f7; }
+    .verdict-box.factual .verdict-text { color: #818cf8; }
+
+    .confidence { font-size: 1rem; color: #aaa; margin-top: 6px; }
+
+    .scores {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .score-box {
+      background: #0a0a14;
+      border: 1px solid #1e1e3a;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .score-box .score-label {
+      font-size: 0.75rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .score-box .score-value { font-size: 1.8rem; font-weight: 700; }
+    .score-box.hall-score .score-value { color: #a855f7; }
+    .score-box.fact-score .score-value { color: #818cf8; }
+
+    .bar-wrap {
+      background: #0a0a14;
+      border-radius: 8px;
+      height: 10px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 8px;
+      transition: width 0.8s ease;
+    }
+
+    .flags-box {
+      background: #0a0a14;
+      border: 1px solid #1e1e3a;
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .flags-title {
+      font-size: 0.75rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+
+    .flag-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: #a855f7;
+      margin-bottom: 6px;
+    }
+
+    .flag-item::before { content: "⚠"; font-size: 0.85rem; }
+
+    .no-flags { font-size: 0.9rem; color: #818cf8; }
+
+    .loader {
+      text-align: center;
+      color: #888;
+      padding: 20px 0;
+      display: none;
+    }
+
+    .loader span { animation: pulse 1.2s ease-in-out infinite; display: inline-block; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>AI Hallucination <span>Detector</span></h1>
+    <p>Paste any AI-generated response. We'll check if it's fabricated.</p>
+    <div class="badge">Powered by NLP &amp; Zero-Shot Classification</div>
+  </div>
+
+  <div class="card">
+    <label for="aitext">Paste AI Response Here</label>
+    <textarea id="aitext" placeholder="e.g. According to studies, scientists have proven that humans only use 10% of their brain. Research from 2019 by experts at Harvard shows this is definitely true and guaranteed..."></textarea>
+    <button id="analyzeBtn" onclick="analyzeText()">Detect Hallucination</button>
+
+    <div class="loader" id="loader">
+      <span>Analyzing with AI...</span>
+    </div>
+
+    <div class="result" id="result">
+
+      <div class="verdict-box" id="verdictBox">
+        <div class="verdict-label">Verdict</div>
+        <div class="verdict-text" id="verdictText"></div>
+        <div class="confidence" id="confidenceText"></div>
+      </div>
+
+      <div class="scores">
+        <div class="score-box hall-score">
+          <div class="score-label">Hallucination Score</div>
+          <div class="score-value" id="hallScore">-</div>
+        </div>
+        <div class="score-box fact-score">
+          <div class="score-label">Factual Score</div>
+          <div class="score-value" id="factScore">-</div>
+        </div>
+      </div>
+
+      <div class="bar-wrap">
+        <div class="bar-fill" id="barFill"></div>
+      </div>
+
+      <div class="flags-box">
+        <div class="flags-title">Suspicious Signals Detected</div>
+        <div id="flagsList"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    async function analyzeText() {
+      const text = document.getElementById("aitext").value.trim();
+      if (!text) return alert("Please paste an AI response first.");
+
+      const btn = document.getElementById("analyzeBtn");
+      const loader = document.getElementById("loader");
+      const result = document.getElementById("result");
+
+      btn.disabled = true;
+      loader.style.display = "block";
+      result.style.display = "none";
+
+      try {
+        const res = await fetch("/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text })
+        });
+
+        const data = await res.json();
+        if (data.error) { alert(data.error); return; }
+
+        const box = document.getElementById("verdictBox");
+        const vtext = document.getElementById("verdictText");
+        const isHall = data.verdict === "HALLUCINATED";
+
+        box.className = "verdict-box " + (isHall ? "hallucinated" : "factual");
+        vtext.textContent = data.verdict;
+        document.getElementById("confidenceText").textContent = `${data.confidence}% confidence`;
+
+        document.getElementById("hallScore").textContent = data.hallucination_score + "%";
+        document.getElementById("factScore").textContent = data.factual_score + "%";
+
+        const bar = document.getElementById("barFill");
+        bar.style.width = data.hallucination_score + "%";
+        bar.style.background = isHall ? "#a855f7" : "#818cf8";
+
+        const flagsList = document.getElementById("flagsList");
+        if (data.flags.length === 0) {
+          flagsList.innerHTML = '<div class="no-flags">✓ No suspicious signals found</div>';
+        } else {
+          flagsList.innerHTML = data.flags.map(f => `<div class="flag-item">${f}</div>`).join("");
+        }
+
+        result.style.display = "block";
+
+      } catch (err) {
+        alert("Something went wrong. Make sure the server is running.");
+      } finally {
+        btn.disabled = false;
+        loader.style.display = "none";
+      }
+    }
+  </script>
+
+</body>
+</html>
