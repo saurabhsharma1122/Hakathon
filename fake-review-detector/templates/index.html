@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fake Review Detector</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #f0f0f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 40px 20px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .header h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .header h1 span { color: #4ade80; }
+
+    .header p {
+      color: #888;
+      margin-top: 8px;
+      font-size: 1rem;
+    }
+
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 680px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: #aaa;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    textarea {
+      width: 100%;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 10px;
+      color: #f0f0f0;
+      font-size: 1rem;
+      padding: 16px;
+      resize: vertical;
+      min-height: 140px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus { border-color: #4ade80; }
+
+    button {
+      margin-top: 16px;
+      width: 100%;
+      padding: 14px;
+      background: #4ade80;
+      color: #0f0f0f;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      letter-spacing: 0.3px;
+    }
+
+    button:hover { background: #22c55e; }
+    button:active { transform: scale(0.98); }
+    button:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+    .result {
+      margin-top: 28px;
+      display: none;
+    }
+
+    .verdict-box {
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .verdict-box.fake {
+      background: #2a0a0a;
+      border: 1px solid #ef4444;
+    }
+
+    .verdict-box.genuine {
+      background: #0a2a0f;
+      border: 1px solid #4ade80;
+    }
+
+    .verdict-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    .verdict-text {
+      font-size: 2.2rem;
+      font-weight: 800;
+    }
+
+    .verdict-box.fake .verdict-text { color: #ef4444; }
+    .verdict-box.genuine .verdict-text { color: #4ade80; }
+
+    .confidence {
+      font-size: 1rem;
+      color: #aaa;
+      margin-top: 6px;
+    }
+
+    .scores {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .score-box {
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .score-box .score-label {
+      font-size: 0.75rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .score-box .score-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    .score-box.fake-score .score-value { color: #ef4444; }
+    .score-box.genuine-score .score-value { color: #4ade80; }
+
+    .bar-wrap {
+      background: #111;
+      border-radius: 8px;
+      height: 10px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 8px;
+      transition: width 0.8s ease;
+    }
+
+    .flags-box {
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .flags-title {
+      font-size: 0.75rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+
+    .flag-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: #f0a040;
+      margin-bottom: 6px;
+    }
+
+    .flag-item::before {
+      content: "⚠";
+      font-size: 0.85rem;
+    }
+
+    .no-flags {
+      font-size: 0.9rem;
+      color: #4ade80;
+    }
+
+    .loader {
+      text-align: center;
+      color: #888;
+      padding: 20px 0;
+      display: none;
+    }
+
+    .loader span {
+      display: inline-block;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .badge {
+      display: inline-block;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.75rem;
+      color: #888;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Fake Review <span>Detector</span></h1>
+    <p>Paste any product review. Our AI will analyze it instantly.</p>
+    <div class="badge">Powered by NLP &amp; Machine Learning</div>
+  </div>
+
+  <div class="card">
+    <label for="review">Enter Review Text</label>
+    <textarea id="review" placeholder="e.g. This is the BEST product I have ever bought!!! Highly recommend to everyone. Must buy!!!"></textarea>
+    <button id="analyzeBtn" onclick="analyzeReview()">Analyze Review</button>
+
+    <div class="loader" id="loader">
+      <span>Analyzing with AI...</span>
+    </div>
+
+    <div class="result" id="result">
+
+      <div class="verdict-box" id="verdictBox">
+        <div class="verdict-label">Verdict</div>
+        <div class="verdict-text" id="verdictText"></div>
+        <div class="confidence" id="confidenceText"></div>
+      </div>
+
+      <div class="scores">
+        <div class="score-box fake-score">
+          <div class="score-label">Fake Score</div>
+          <div class="score-value" id="fakeScore">-</div>
+        </div>
+        <div class="score-box genuine-score">
+          <div class="score-label">Genuine Score</div>
+          <div class="score-value" id="genuineScore">-</div>
+        </div>
+      </div>
+
+      <div class="bar-wrap">
+        <div class="bar-fill" id="barFill"></div>
+      </div>
+
+      <div class="flags-box">
+        <div class="flags-title">Suspicious Signals Detected</div>
+        <div id="flagsList"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    async function analyzeReview() {
+      const review = document.getElementById("review").value.trim();
+      if (!review) return alert("Please enter a review first.");
+
+      const btn = document.getElementById("analyzeBtn");
+      const loader = document.getElementById("loader");
+      const result = document.getElementById("result");
+
+      btn.disabled = true;
+      loader.style.display = "block";
+      result.style.display = "none";
+
+      try {
+        const res = await fetch("/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ review })
+        });
+
+        const data = await res.json();
+
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+
+        // Verdict
+        const box = document.getElementById("verdictBox");
+        const text = document.getElementById("verdictText");
+        box.className = "verdict-box " + (data.verdict === "FAKE" ? "fake" : "genuine");
+        text.textContent = data.verdict === "FAKE" ? "FAKE REVIEW" : "GENUINE REVIEW";
+        document.getElementById("confidenceText").textContent = `${data.confidence}% confidence`;
+
+        // Scores
+        document.getElementById("fakeScore").textContent = data.fake_score + "%";
+        document.getElementById("genuineScore").textContent = data.genuine_score + "%";
+
+        // Bar
+        const bar = document.getElementById("barFill");
+        bar.style.width = data.fake_score + "%";
+        bar.style.background = data.fake_score > 50 ? "#ef4444" : "#4ade80";
+
+        // Flags
+        const flagsList = document.getElementById("flagsList");
+        if (data.flags.length === 0) {
+          flagsList.innerHTML = '<div class="no-flags">✓ No suspicious signals found</div>';
+        } else {
+          flagsList.innerHTML = data.flags.map(f => `<div class="flag-item">${f}</div>`).join("");
+        }
+
+        result.style.display = "block";
+
+      } catch (err) {
+        alert("Something went wrong. Make sure the server is running.");
+      } finally {
+        btn.disabled = false;
+        loader.style.display = "none";
+      }
+    }
+
+    // Allow Enter key (Ctrl+Enter) to submit
+    document.getElementById("review").addEventListener("keydown", function(e) {
+      if (e.ctrlKey && e.key === "Enter") analyzeReview();
+    });
+  </script>
+
+</body>
+</html>
