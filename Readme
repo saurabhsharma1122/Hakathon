@@ -1,0 +1,41 @@
+# Fake Review Detector
+
+An AI-powered web app that detects fake or fraudulent product reviews using NLP and Machine Learning.
+
+## Features
+- Paste any product review and get an instant verdict
+- Shows Fake/Genuine score with confidence percentage
+- Highlights suspicious signals (excessive caps, generic phrases, etc.)
+- Clean dark UI built for presentation
+
+## Tech Stack
+- Python + Flask (Backend)
+- Transformers / NLP Model (AI Detection)
+- HTML + CSS + JavaScript (Frontend)
+
+## Setup & Run
+
+### 1. Install dependencies
+```
+pip install -r requirements.txt
+```
+
+### 2. Run the app
+```
+python app.py
+```
+
+### 3. Open in browser
+```
+http://localhost:5000
+```
+
+## How it works
+1. User pastes a review into the text box
+2. The review is sent to the Flask backend
+3. A zero-shot NLP classification model analyzes the text
+4. Additional heuristic checks flag suspicious patterns
+5. Result is displayed with confidence score and flags
+
+## Team
+Built for Hackathon 2026
